@@ -1,16 +1,23 @@
 using System;
+using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using NetTools.PluginContracts;
 
 namespace NetTools.Plugin.Traceroute
 {
-    public class TracerouteToolPlugin : IConsoleNetworkToolPlugin
+    public class TracerouteToolPlugin : IConsoleNetworkToolPlugin, IWinFormsNetworkToolPlugin
     {
         public string Id => "Traceroute";
         public string DisplayName => "Traceroute Tool";
         public string Description => "Trace the route to a destination host using ICMP with increasing TTL.";
+
+        public UserControl CreateToolControl(IPluginHostContext context)
+        {
+            return new TracerouteToolControl(context);
+        }
 
         public async Task RunConsoleAsync(IPluginHostContext context, CancellationToken cancellationToken)
         {
@@ -43,15 +50,24 @@ namespace NetTools.Plugin.Traceroute
             Console.WriteLine($"Tracing route to {host} over a maximum of {maxHops} hops:");
             Console.WriteLine();
 
+            int hopsAttempted = 0;
+            int hopsResponded = 0;
+            int hopsTimedOut = 0;
+            int hopsErrored = 0;
+            bool destinationReached = false;
+            string destinationAddress = null;
+            var stopwatch = Stopwatch.StartNew();
+
             using (var ping = new Ping())
             {
                 for (int ttl = 1; ttl <= maxHops; ttl++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    hopsAttempted++;
 
                     var options = new PingOptions(ttl, true);
                     var buffer = new byte[32];
-                    var startTime = DateTime.UtcNow;
+                    var hopStart = DateTime.UtcNow;
 
                     PingReply reply;
                     try
@@ -60,33 +76,68 @@ namespace NetTools.Plugin.Traceroute
                     }
                     catch (Exception ex)
                     {
+                        hopsErrored++;
                         context.Logger.Error(ex.Message);
                         Console.WriteLine($"{ttl,3}  *  Error: {ex.Message}");
                         continue;
                     }
 
-                    var elapsed = DateTime.UtcNow - startTime;
+                    var elapsed = DateTime.UtcNow - hopStart;
 
                     if (reply.Status == IPStatus.TimedOut)
                     {
+                        hopsTimedOut++;
                         Console.WriteLine($"{ttl,3}  *  Request timed out.");
                     }
                     else
                     {
-                        var address = reply.Address;
+                        hopsResponded++;
+                        destinationAddress = reply.Address.ToString();
                         Console.WriteLine(
-                            $"{ttl,3}  {address}  time={elapsed.TotalMilliseconds:0.##}ms  status={reply.Status}");
+                            $"{ttl,3}  {reply.Address,-15}  time={elapsed.TotalMilliseconds,6:0.##}ms  status={reply.Status}");
 
                         if (reply.Status == IPStatus.Success)
                         {
-                            Console.WriteLine();
-                            Console.WriteLine("Trace complete.");
+                            destinationReached = true;
                             break;
                         }
                     }
                 }
             }
+
+            stopwatch.Stop();
+            PrintSummary(host, destinationAddress, hopsAttempted, hopsResponded, hopsTimedOut, hopsErrored, destinationReached, stopwatch.Elapsed);
+        }
+
+        private static void PrintSummary(
+            string host,
+            string destinationAddress,
+            int hopsAttempted,
+            int hopsResponded,
+            int hopsTimedOut,
+            int hopsErrored,
+            bool destinationReached,
+            TimeSpan elapsed)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Trace summary:");
+            Console.WriteLine($"    Destination: {host}" +
+                              (string.IsNullOrEmpty(destinationAddress) ? string.Empty : $" [{destinationAddress}]"));
+            Console.WriteLine($"    Hops attempted: {hopsAttempted}");
+            Console.WriteLine($"    Hops responded: {hopsResponded}");
+            Console.WriteLine($"    Hops timed out: {hopsTimedOut}");
+            Console.WriteLine($"    Hops with errors: {hopsErrored}");
+            Console.WriteLine($"    Destination reached: {(destinationReached ? "Yes" : "No")}");
+            Console.WriteLine($"    Total elapsed time: {elapsed.TotalSeconds:0.##} second(s).");
+
+            if (destinationReached)
+            {
+                Console.WriteLine("Trace complete.");
+            }
+            else
+            {
+                Console.WriteLine("Trace finished without reaching destination.");
+            }
         }
     }
 }
-

@@ -34,11 +34,16 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="PingToolPlugin.cs" />
+    <Compile Include="PingToolControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -47,6 +52,13 @@
       <Name>NetTools.PluginContracts</Name>
     </ProjectReference>
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>if not exist "$(SolutionDir)NetTools.Host.Console\bin\$(Configuration)\Plugins\$(ProjectName)" mkdir "$(SolutionDir)NetTools.Host.Console\bin\$(Configuration)\Plugins\$(ProjectName)"
+if not exist "$(SolutionDir)NetTools.Host.WinForms\bin\$(Configuration)\Plugins\$(ProjectName)" mkdir "$(SolutionDir)NetTools.Host.WinForms\bin\$(Configuration)\Plugins\$(ProjectName)"
+copy /Y "$(TargetPath)" "$(SolutionDir)NetTools.Host.Console\bin\$(Configuration)\Plugins\$(ProjectName)\"
+copy /Y "$(TargetPath)" "$(SolutionDir)NetTools.Host.WinForms\bin\$(Configuration)\Plugins\$(ProjectName)\"
+</PostBuildEvent>
+  </PropertyGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
 

@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{A1B2C3D4-0006-4000-8000-000000000006}</ProjectGuid>
+    <ProjectGuid>{A1B2C3D4-0010-4000-8000-00000000000A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>NetTools.Plugin.PortScan</RootNamespace>
-    <AssemblyName>NetTools.Plugin.PortScan</AssemblyName>
+    <RootNamespace>NetTools.Plugin.IpScan</RootNamespace>
+    <AssemblyName>NetTools.Plugin.IpScan</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -35,13 +35,13 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PortScanToolPlugin.cs" />
-    <Compile Include="PortScanToolControl.cs">
+    <Compile Include="IpScanHelper.cs" />
+    <Compile Include="IpScanToolPlugin.cs" />
+    <Compile Include="IpScanToolControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -61,4 +61,3 @@ copy /Y "$(TargetPath)" "$(SolutionDir)NetTools.Host.WinForms\bin\$(Configuratio
   </PropertyGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
-

@@ -56,6 +56,54 @@ namespace NetTools.Host.Core
 
             return result;
         }
+
+        public IReadOnlyList<IWinFormsNetworkToolPlugin> LoadWinFormsPlugins(
+            string pluginsRoot,
+            IPluginHostContext context)
+        {
+            var result = new List<IWinFormsNetworkToolPlugin>();
+
+            if (!Directory.Exists(pluginsRoot))
+            {
+                return result;
+            }
+
+            var pluginDirectories = Directory.GetDirectories(pluginsRoot);
+
+            foreach (var dir in pluginDirectories)
+            {
+                foreach (var dll in Directory.GetFiles(dir, "*.dll"))
+                {
+                    Assembly asm;
+                    try
+                    {
+                        asm = Assembly.LoadFrom(dll);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
+                    var types = asm
+                        .GetTypes()
+                        .Where(t => !t.IsAbstract && typeof(IWinFormsNetworkToolPlugin).IsAssignableFrom(t));
+
+                    foreach (var t in types)
+                    {
+                        try
+                        {
+                            var plugin = (IWinFormsNetworkToolPlugin)Activator.CreateInstance(t);
+                            result.Add(plugin);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
     }
 }
 

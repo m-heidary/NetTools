@@ -1,150 +1,378 @@
-﻿:::writing block
+# NetTools Terminal Emulator Plugin
 
-Network Toolkit (Plugin‑Based)
-A modular network diagnostics and analysis toolkit built with a plugin-based architecture.
+A terminal emulator plugin for **NetTools**, built with **C#**, **WinForms**, and **.NET Framework 4.8**.
 
-The project provides both Console and Windows Forms GUI interfaces, allowing users to run various networking tools through dynamically loaded plugins.
+This plugin adds interactive terminal access to NetTools through SSH and Telnet sessions. It is designed around a clean separation between UI rendering, terminal session management, and transport protocols, making it extensible for future protocols such as Serial, Raw TCP, or custom network shells.
 
-The goal of this project is to create an extensible network utility platform where new tools can easily be added without modifying the core application.
+---
 
-Screenshots
-Windows Forms Interface
+## Features
 
+- SSH terminal sessions
+- Telnet terminal sessions
+- WinForms-based terminal UI
+- Multiple terminal sessions using tabs
+- Session lifecycle management
+  - Connect
+  - Disconnect
+  - Reconnect
+  - Close session
+- Keyboard input forwarding
+- Mouse selection support
+- Copy and paste support
+- Terminal clear operation
+- Resize-aware terminal sessions
+- Thread-safe UI updates from background transport events
+- Extensible transport layer
+- Plugin-based integration with NetTools
 
-Console Interface
+---
 
+## Project Target
 
-Running a Plugin
+The plugin ecosystem targets **.NET Framework 4.8**.
 
+The plugin contracts project defines:
 
-Features
-Plugin-based architecture
-Supports both Console and Windows Forms UI
-Easy to extend with new plugins
-Modular design
-Lightweight and fast
-Ideal for network diagnostics, troubleshooting, and testing
-Available Plugins
-Plugin	Description
-DNSLookup	Query DNS records for a domain
-HttpInspector	Inspect HTTP responses and headers
-IPScan	Scan a range of IP addresses
-NtpClient	Query time from NTP servers
-Ping	Test connectivity to a host
-PortScan	Scan open ports on a target
-SSLCertificate	Retrieve SSL certificate information
-SubnetCalculator	Perform subnet calculations
-Traceroute	Trace route to a destination
-WebsiteStatusChecker	Check website availability
-Architecture
-The project follows a plugin-based architecture.
+- `TargetFrameworkVersion`: `v4.8`
+- Root namespace: `NetTools.PluginContracts`
+- Assembly name: `NetTools.PluginContracts`
+
+Source: `NetTools.PluginContracts.csproj`, lines 7-9 and 17-22.
+
+---
+
+## Architecture Overview
+
+The terminal emulator is organized into separate layers:
+```text
+Transport
+  -> TerminalSession
+-> TerminalEmulatorToolControl
+-> SessionTabPage
+-> TerminalControl
+-> AnsiTerminalParser
+-> TerminalBuffer
+-> WinForms Paint
+
+### 1. Plugin Layer
+
+The plugin entry point exposes the terminal emulator to the NetTools host application.
+
+Typical responsibilities:
+
+- Provide plugin metadata
+- Create the WinForms tool control
+- Receive host context
+- Use host logging services where available
+
+The contracts project references `System.Windows.Forms`, which indicates support for WinForms-based plugin UI components.
+
+Source: `NetTools.PluginContracts.csproj`, lines 25-33.
+
+---
+
+### 2. UI Layer
+
+The UI layer is responsible for the user-facing terminal experience.
+
+Main components:
+
+- `TerminalEmulatorToolControl`
+- `SessionTabPage`
+- `TerminalControl`
+- `ConnectDialog`
+
+Responsibilities:
+
+- Manage terminal tabs
+- Open and close sessions
+- Reconnect sessions
+- Forward toolbar commands to the active terminal
+- Render terminal output
+- Handle copy, paste, selection, and keyboard input
+
+---
+
+### 3. Session Layer
+
+The session layer acts as an abstraction between the UI and the underlying protocol transport.
+
+Main components:
+
+- `TerminalSession`
+- `TerminalSessionOptions`
+- `TerminalTransportFactory`
+
+Responsibilities:
+
+- Store connection options
+- Create the correct transport implementation
+- Expose session events
+- Forward terminal input to the transport
+- Handle resize events
+- Provide helper methods for control keys, arrow keys, and function keys
+
+---
+
+### 4. Transport Layer
+
+The transport layer handles protocol-specific communication.
+
+Implemented transports:
+
+- SSH transport
+- Telnet transport
+
+#### SSH Transport
+
+The SSH transport uses an interactive shell stream and supports:
+
+- Password authentication
+- Private key authentication
+- Terminal resize notifications
+- Bidirectional terminal I/O
+
+#### Telnet Transport
+
+The Telnet transport includes a state-machine-based parser for Telnet negotiation.
+
+Supported Telnet behavior includes:
+
+- IAC command processing
+- Option negotiation
+- Subnegotiation handling
+- NAWS terminal size negotiation
+- Terminal type negotiation
+
+---
+
+### 5. Terminal Rendering Layer
+
+The terminal rendering layer is responsible for converting incoming terminal data into visual output.
 
 Core components:
 
-Core Application
+- `TerminalControl`
+- `AnsiTerminalParser`
+- `TerminalBuffer`
+- `TerminalCell`
+- `TerminalStyle`
 
-Plugin Loader
-Plugin Interface
-Execution Engine
-Plugins
+Planned or expected ANSI/VT support:
 
-Implement the shared plugin interface
-Loaded dynamically at runtime
-Extend the functionality of the toolkit
-Simplified architecture:
+- Normal text output
+- Carriage return
+- Line feed
+- Backspace
+- Tab
+- Cursor movement
+- Screen clearing
+- Line clearing
+- ANSI color sequences
+- Basic text styles
+- Scroll behavior
+- Terminal title escape sequence support
+
+---
+
+## Plugin Contracts
+
+The shared plugin contract project is named:
 
 text
-Core Application
-│
-├── Plugin Loader
-│
-├── Plugin Interface
-│
-└── Plugins
-    ├── Ping
-    ├── PortScan
-    ├── DNSLookup
-    ├── Traceroute
-    └── ...
-Project Structure
+NetTools.PluginContracts
+
+It includes the following compile items:
+
 text
-NetworkToolkit
-│
-├── Core
-│   └── Plugin interfaces and base classes
-│
-├── ConsoleApp
-│   └── Command-line interface
-│
-├── WinFormsApp
-│   └── Graphical interface
-│
-├── Plugins
-│   ├── Ping
-│   ├── PortScan
-│   ├── DNSLookup
-│   ├── Traceroute
-│   └── ...
-│
-└── docs
-    └── images
-Installation
-Clone the repository:
+Contracts.cs
+Properties\AssemblyInfo.cs
 
-bash
-git clone https://github.com/m-heidary/NetTools.git
-Open the solution in Visual Studio and build the project.
+Source: `NetTools.PluginContracts.csproj`, lines 35-40.
 
-Running the Application
-Console Version
-bash
-dotnet run --project ConsoleApp
-Windows Forms Version
-Run the WinForms project from Visual Studio.
+The contract assembly is expected to define the interfaces required by NetTools plugins, such as plugin metadata, host context access, logging, and WinForms tool creation.
 
-Creating a New Plugin
-Create a new class library project.
-Reference the Core project.
-Implement the plugin interface.
-Example:
+---
+
+## Dependencies
+
+The plugin contracts project references standard .NET Framework assemblies, including:
+
+- `System`
+- `System.Core`
+- `System.Windows.Forms`
+- `System.Xml.Linq`
+- `System.Data.DataSetExtensions`
+- `Microsoft.CSharp`
+- `System.Data`
+- `System.Net.Http`
+- `System.Xml`
+
+Source: `NetTools.PluginContracts.csproj`, lines 25-33.
+
+The terminal emulator plugin may additionally require an SSH client library, such as SSH.NET, for SSH session support.
+
+---
+
+## Suggested Solution Structure
+
+text
+NetTools.PluginContracts/
+  Contracts.cs
+  NetTools.PluginContracts.csproj
+
+NetTools.Plugin.TerminalEmulator/
+  TerminalEmulatorToolPlugin.cs
+  TerminalEmulatorToolControl.cs
+
+  UI/
+ConnectDialog.cs
+SessionTabPage.cs
+
+  Sessions/
+TerminalSession.cs
+TerminalSessionOptions.cs
+
+  Transports/
+ITerminalTransport.cs
+TerminalTransportFactory.cs
+SshTransport.cs
+TelnetTransport.cs
+
+  Terminal/
+TerminalControl.cs
+TerminalBuffer.cs
+TerminalCell.cs
+TerminalStyle.cs
+AnsiTerminalParser.cs
+
+---
+
+## Building
+
+Requirements:
+
+- Windows
+- Visual Studio 2019 or newer
+- .NET Framework 4.8 Developer Pack
+
+Build the solution in Visual Studio or using MSBuild:
+
+powershell
+msbuild NetTools.sln /p:Configuration=Release
+
+If building only the plugin project:
+
+powershell
+msbuild NetTools.Plugin.TerminalEmulator.csproj /p:Configuration=Release
+
+---
+
+## Usage
+
+1. Build the plugin project.
+2. Copy the compiled plugin assembly to the NetTools plugin directory.
+3. Start NetTools.
+4. Open the Terminal Emulator tool from the plugin/tool list.
+5. Create a new session.
+6. Select SSH or Telnet.
+7. Enter host, port, and authentication details.
+8. Connect.
+
+---
+
+## Session Flow
+
+text
+User creates a session
+  -> TerminalEmulatorToolControl creates TerminalSessionOptions
+  -> TerminalTransportFactory creates SSH or Telnet transport
+  -> TerminalSession connects transport
+  -> Transport emits DataReceived events
+  -> UI marshals events to WinForms UI thread
+  -> TerminalControl parses and renders output
+
+---
+
+## Thread Safety
+
+Transport events may be raised from background threads. For this reason, all UI updates must be marshaled to the WinForms UI thread before touching controls.
+
+The recommended pattern is:
 
 csharp
-public class MyPlugin : INetworkToolPlugin
+if (InvokeRequired)
 {
-    public string Name => "My Plugin";
-
-    public void Execute()
-    {
-        Console.WriteLine("My plugin is running");
-    }
+BeginInvoke(action);
+return;
 }
-Place the compiled plugin inside the Plugins directory.
 
-The application will automatically load it at runtime.
+action();
 
-Roadmap
-Future improvements may include:
+This prevents cross-thread operation exceptions and keeps terminal sessions stable during asynchronous network activity.
 
-Plugin marketplace
-Packet capture plugin
-Whois lookup
-Network speed test
-Export results (JSON / CSV)
-Logging system
-Cross-platform GUI
-Contributing
-Contributions are welcome.
+---
 
-If you’d like to add a new plugin or improve the core system:
+## Extending Transports
 
-Fork the repository
-Create a new branch
-Commit your changes
-Open a Pull Request
-License
-This project is licensed under the MIT License.
+New protocols can be added by implementing the terminal transport abstraction.
 
-Author
-Developed as a modular network utility toolkit focused on extensibility and plugin-based design.
+Example future transports:
 
-:::
+- Serial
+- Raw TCP
+- Local shell
+- PowerShell remoting
+- Custom device console
+
+A new transport should handle:
+
+- Connect
+- Disconnect
+- Send data
+- Receive data
+- Resize notification, if supported
+- Error reporting
+
+Then register it in the transport factory.
+
+---
+
+## Roadmap
+
+- Complete ANSI/VT100 parser
+- Add richer terminal color support
+- Add scrollback buffer
+- Add configurable terminal themes
+- Add saved connection profiles
+- Add SSH key passphrase support
+- Add session logging
+- Add search in terminal output
+- Add copy-on-select option
+- Add configurable font and cursor style
+
+---
+
+## License
+
+Add the project license here.
+
+Example:
+
+text
+MIT License
+
+---
+
+## Status
+
+This plugin is under active development.
+
+The current architecture focuses on:
+
+- Clean plugin integration
+- SSH/Telnet transport separation
+- Thread-safe WinForms UI updates
+- A foundation for ANSI terminal rendering
+
